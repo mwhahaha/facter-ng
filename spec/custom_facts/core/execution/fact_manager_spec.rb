@@ -62,15 +62,33 @@ describe LegacyFacter::Core::Execution::Base do
   end
 
   describe '#execute' do
-    it 'switches LANG and LC_ALL to C when executing the command' do
-      expect(subject).to receive(:with_env).with('LC_ALL' => 'C', 'LANG' => 'C')
-      subject.execute('foo')
-    end
+    context 'with env' do
+      subject(:execution_base) { LegacyFacter::Core::Execution::Base.new }
 
-    it 'expands the command before running it' do
-      allow(Open3).to receive(:capture3).with('/bin/foo').and_return('')
-      expect(subject).to receive(:expand_command).with('foo').and_return '/bin/foo'
-      subject.execute('foo')
+      let(:test_env) { { 'LANG' => 'C', 'LC_ALL' => 'C' } }
+
+      before do
+        test_env.each do |key, value|
+          allow(ENV).to receive(:[]).with(key).and_return(value)
+        end
+      end
+
+      it 'switches LANG and LC_ALL to C when executing the command' do
+        expect(execution_base).to receive(:with_env).with('LC_ALL' => 'C', 'LANG' => 'C')
+        execution_base.execute('foo')
+      end
+
+      it 'expands the command before running it' do
+        allow(Open3).to receive(:capture3).with('/bin/foo').and_return('')
+        allow(execution_base).to receive(:expand_command).with('foo').and_return '/bin/foo'
+        execution_base.execute('foo')
+      end
+
+      it 'does not expant builtin command' do
+        allow(Open3).to receive(:capture3).with('foo').and_return('')
+        allow(execution_base).to receive(:'`').with('type foo').and_return 'builtin'
+        execution_base.execute('foo', expand: false)
+      end
     end
 
     context 'when there are stderr messages from file' do

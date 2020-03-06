@@ -8,6 +8,20 @@ describe LegacyFacter::Core::Execution::Windows, as_platform: :windows do
     end
   end
 
+  describe '#execute' do
+    it 'raises exception' do
+      expect { subject.execute('foo', expand: false) }
+        .to raise_error(ArgumentError,
+                        'Unsupported argument on Windows expand with value false')
+    end
+
+    it 'does not raise exception' do
+      allow(Open3).to receive(:capture3).with('/bin/foo').and_return('')
+      allow(subject).to receive(:expand_command).with('foo').and_return '/bin/foo'
+      expect(subject.execute('foo', expand: true)).to eq ''
+    end
+  end
+
   describe '#which' do
     before do
       allow(subject)
